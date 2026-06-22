@@ -1,4 +1,5 @@
-import { IExtractedElement } from '../types';
+import { IExtractedElement, IDistilledDesignTokens } from '../types';
+import { clusterColors } from './colorDistiller';
 
 /**
  * Calculates the Greatest Common Divisor of two numbers.
@@ -69,11 +70,12 @@ export function extractBaseSpacingUnit(elements: IExtractedElement[]): number {
     frequencies[val] = (frequencies[val] || 0) + 1;
   });
 
-  // Filter to keep only values that are significant (appear at least 2 times)
-  // and are greater than or equal to 4px (to ignore border-width offsets, etc.)
+  // Filter to keep only values that are significant
+  // If we have few total spacing values (less than 10), we keep all unique values >= 4px.
+  // Otherwise, we filter to keep values that appear at least 2 times.
   const significantSpacings = Object.entries(frequencies)
     .map(([val, count]) => ({ val: parseInt(val), count }))
-    .filter((item) => item.val >= 4 && item.count >= 2)
+    .filter((item) => item.val >= 4 && (spacingValues.length < 10 || item.count >= 2))
     .sort((a, b) => b.count - a.count);
 
   if (significantSpacings.length === 0) {
@@ -162,5 +164,20 @@ export function distillTypography(elements: IExtractedElement[]): IDistilledTypo
   return {
     fontFamilies: sortedFamilies,
     fontSizes: sortedSizesStr,
+  };
+}
+
+/**
+ * Compiles colors, spacing, and typography from raw elements into a structured IDistilledDesignTokens object.
+ */
+export function distillDesignTokens(elements: IExtractedElement[]): IDistilledDesignTokens {
+  const colors = clusterColors(elements);
+  const baseSpacing = extractBaseSpacingUnit(elements);
+  const typography = distillTypography(elements);
+
+  return {
+    colors,
+    baseSpacing,
+    typography,
   };
 }

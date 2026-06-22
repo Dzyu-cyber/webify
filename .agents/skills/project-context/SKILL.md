@@ -23,9 +23,10 @@ Webify is split into a separated Frontend (React SPA) and Backend (Express API +
   - ✅ Scaffold Frontend (Vite + React + TS + Tailwind)
   - ✅ Scaffold Backend (Node + TS + Express)
   - ✅ Feature 1: Headless Extraction Engine (Playwright DOM style extraction, stabilization, iframe stripping, and baseline filtering)
+  - ✅ Feature 2: Style Distiller & Tokenizer (CIE76 color clustering, base spacing unit GCD, and typography scale extraction)
 - **In Progress:**
-  - 🔄 Feature 2: Style Distiller & Tokenizer
-- **Next Up:** Feature 2, Task 2.1 — Delta-E color distance calculation utility.
+  - 🔄 Feature 3: LLM Formatter Pipeline
+- **Next Up:** Feature 3, Task 3.1 — Setup Claude API SDK and dotenv configuration.
 
 ## Environment Variables Needed
 *(Note: Frontend vars use `VITE_` prefix, Backend vars do not)*
