@@ -17,7 +17,7 @@ Webify is split into a separated Frontend (React SPA) and Backend (Express API +
 - `/shared/types` — Shared TypeScript interfaces (e.g., `design.md` schema, Job status payloads)
 
 ## Current Status
-- **Phase:** MVP Build
+- **Phase:** MVP Completed / Pre-Deployment Check
 - **Completed:**
   - ✅ Setup Git & Core Configurations
   - ✅ Scaffold Frontend (Vite + React + TS + Tailwind)
@@ -26,9 +26,10 @@ Webify is split into a separated Frontend (React SPA) and Backend (Express API +
   - ✅ Feature 2: Style Distiller & Tokenizer (CIE76 color clustering, base spacing unit GCD, and typography scale extraction)
   - ✅ Feature 3: LLM Formatter Pipeline (Claude API integration, custom system prompt design, DOM payload simplification, and backoff retry logic)
   - ✅ Feature 4: Async API & Job Queue (Express endpoints, BullMQ scheduler, parsed Redis connection options, and worker serialization)
+  - ✅ Feature 5: Web Interface (URL forms, status log displays, markdown rendering, clipboard, and file downloads)
 - **In Progress:**
-  - 🔄 Feature 5: Web Interface
-- **Next Up:** Feature 5, Task 5.1 — Client React SPA initialization and router setup.
+  - 🔄 Pre-deployment security audits and checklist validation.
+- **Next Up:** Deployment to Render/Railway/Vercel.
 
 ## Environment Variables Needed
 *(Note: Frontend vars use `VITE_` prefix, Backend vars do not)*
