@@ -100,6 +100,7 @@ export async function extractComputedStyles(
   status: number;
   elements: IExtractedElement[];
   strippedIframes: number;
+  screenshots: string[];
 }> {
   const browser = await chromium.launch({ headless: true });
   try {
@@ -195,13 +196,44 @@ export async function extractComputedStyles(
       };
     });
 
-    console.log(`Successfully completed extraction for "${title}". Extracted ${elements.length} elements.`);
+    // 7.5 Capture 5 viewport screenshots spaced evenly down the page length
+    console.log('Capturing viewport screenshots...');
+    const screenshots: string[] = [];
+    try {
+      const viewportSize = page.viewportSize() || { width: 1280, height: 800 };
+      const viewportHeight = viewportSize.height;
+      const totalHeight = await page.evaluate(() => document.body.scrollHeight);
+      
+      const screenshotSteps = 5;
+      for (let i = 0; i < screenshotSteps; i++) {
+        // Calculate scroll offset
+        const scrollTop = Math.min(Math.floor((i * totalHeight) / screenshotSteps), totalHeight - viewportHeight);
+        
+        // Scroll to the calculated offset
+        await page.evaluate((y) => window.scrollTo(0, y), scrollTop);
+        
+        // Wait briefly for scroll events, lazy loaded content, and renders to complete
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        
+        // Capture viewport screenshot as JPEG at 70% quality to optimize payload size
+        const buffer = await page.screenshot({ type: 'jpeg', quality: 70 });
+        screenshots.push(buffer.toString('base64'));
+      }
+      
+      // Scroll back to the top of the page so it is reset
+      await page.evaluate(() => window.scrollTo(0, 0));
+    } catch (err) {
+      console.warn('Failed to capture page screenshots:', err);
+    }
+
+    console.log(`Successfully completed extraction for "${title}". Extracted ${elements.length} elements. Captured ${screenshots.length} screenshots.`);
 
     return {
       title,
       status,
       elements,
       strippedIframes,
+      screenshots,
     };
   } catch (error) {
     console.error(`Failed during computed style extraction for ${url}:`, error);

@@ -28,12 +28,15 @@ const worker = new Worker(
       // Step 3: LLM Formatting
       await job.updateProgress(75);
       console.log(`Job ${job.id} [75%]: Requesting Claude API formatting...`);
-      const markdown = await generateDesignMarkdown(extracted.title, tokens, extracted.elements);
+      const markdown = await generateDesignMarkdown(extracted.title, tokens, extracted.elements, extracted.screenshots);
 
       // Complete
       await job.updateProgress(100);
       console.log(`Job ${job.id} [100%]: Completed successfully.`);
-      return markdown;
+      return {
+        markdown,
+        screenshots: extracted.screenshots,
+      };
     } catch (error: any) {
       console.error(`Error processing job ${job.id}:`, error);
       throw new Error(error.message || 'Job execution encountered an unhandled error.');

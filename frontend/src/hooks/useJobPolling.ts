@@ -4,7 +4,10 @@ export interface IJobStatusResponse {
   id: string;
   state: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed';
   progress: number;
-  result?: string;
+  result?: {
+    markdown: string;
+    screenshots: string[];
+  };
   failedReason?: string;
 }
 
@@ -47,6 +50,10 @@ export function useJobPolling(apiBaseUrl: string) {
 
         const data: IJobStatusResponse = await res.json();
         setStatus(data);
+
+        if (data.state === 'failed') {
+          setError(data.failedReason || 'Extraction job failed.');
+        }
 
         // Terminate polling on completion or failure
         if (data.state === 'completed' || data.state === 'failed') {

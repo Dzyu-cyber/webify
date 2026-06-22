@@ -127,10 +127,44 @@ function App() {
 
             {/* Results Viewer */}
             {status?.state === 'completed' && status.result && (
-              <MarkdownRenderer
-                content={status.result}
-                pageTitle={status.result.split('\n')[0].replace(/#/g, '').trim() || 'Website'}
-              />
+              <div className="space-y-8 w-full">
+                {/* Visual Screenshots Gallery */}
+                {status.result.screenshots && status.result.screenshots.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                      📸 Captured Page Layout Screenshots
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                      {status.result.screenshots.map((base64, index) => {
+                        const dataUrl = `data:image/jpeg;base64,${base64}`;
+                        return (
+                          <div key={index} className="relative group rounded-xl overflow-hidden border border-slate-800 bg-slate-900 shadow-lg transition-transform hover:scale-102 duration-300">
+                            <img src={dataUrl} alt={`Page segment ${index + 1}`} className="w-full h-32 object-cover" />
+                            <div className="absolute inset-0 bg-slate-950/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <a
+                                href={dataUrl}
+                                download={`screenshot_${index + 1}.jpg`}
+                                className="px-3 py-1.5 bg-indigo-505 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold shadow-md transition-all uppercase tracking-wider cursor-pointer"
+                              >
+                                Download
+                              </a>
+                            </div>
+                            <span className="absolute bottom-2 left-2 bg-slate-950/70 backdrop-blur text-slate-350 text-[10px] font-mono px-1.5 py-0.5 rounded border border-slate-850">
+                              #{index + 1}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Markdown Design Document Renderer */}
+                <MarkdownRenderer
+                  content={status.result.markdown}
+                  pageTitle={status.result.markdown.split('\n')[0].replace(/#/g, '').trim() || 'Website'}
+                />
+              </div>
             )}
           </div>
         )}
