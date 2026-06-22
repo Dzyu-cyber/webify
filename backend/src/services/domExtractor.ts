@@ -26,6 +26,31 @@ const PROPERTIES_TO_COLLECT = [
 ];
 
 /**
+ * Extracts default browser styles for common tags on a blank page.
+ */
+async function extractBaselineStyles(page: Page, properties: string[]): Promise<Record<string, Record<string, string>>> {
+  console.log('Extracting browser baseline user-agent styles...');
+  return await page.evaluate((props) => {
+    const tags = ['html', 'body', 'div', 'span', 'p', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'button', 'input', 'ul', 'ol', 'li'];
+    const baseline: Record<string, Record<string, string>> = {};
+
+    tags.forEach((tag) => {
+      const el = document.createElement(tag);
+      document.body.appendChild(el);
+      const style = window.getComputedStyle(el);
+      const styleMap: Record<string, string> = {};
+      props.forEach((prop) => {
+        styleMap[prop] = style.getPropertyValue(prop);
+      });
+      baseline[tag] = styleMap;
+      document.body.removeChild(el);
+    });
+
+    return baseline;
+  }, properties);
+}
+
+/**
  * Helper function to wait for DOM stabilization.
  * Checks element count periodically and considers the DOM stable when count doesn't change.
  */
@@ -65,7 +90,8 @@ async function stripIframes(page: Page): Promise<number> {
 }
 
 /**
- * Visits a URL, waits for it to stabilize, strips iframes, and extracts computed styles for up to 1000 elements.
+ * Visits a URL, waits for it to stabilize, strips iframes, and extracts computed styles for up to 1000 elements,
+ * filtering out default browser styles based on a dynamically generated baseline.
  */
 export async function extractComputedStyles(
   url: string
@@ -80,37 +106,40 @@ export async function extractComputedStyles(
     const context = await browser.newContext();
     const page = await context.newPage();
 
+    // 1. Gather baseline browser styles before navigation
+    const baselineStyles = await extractBaselineStyles(page, PROPERTIES_TO_COLLECT);
+
     console.log(`Navigating to: ${url}`);
     
-    // 1. Wait for load state while navigating
+    // 2. Navigate and wait for initial load
     const response = await page.goto(url, { waitUntil: 'load', timeout: 30000 });
     const status = response?.status() ?? 200;
 
-    // 2. Wait for network connections to settle (networkidle)
+    // 3. Wait for network connections to settle (networkidle)
     console.log('Waiting for network idle...');
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {
       console.warn('Network idle timeout reached; continuing...');
     });
 
-    // 3. Wait for all fonts to finish loading
+    // 4. Wait for all fonts to finish loading
     console.log('Waiting for document fonts to load...');
     await page.evaluate(() => document.fonts.ready).catch((err) => {
       console.warn('Failed waiting for fonts:', err);
     });
 
-    // 4. Wait for DOM size to stabilize
+    // 5. Wait for DOM size to stabilize
     console.log('Waiting for DOM stabilization...');
     await waitForDomStabilization(page);
 
-    // 5. Strip all iframe elements
+    // 6. Strip all iframe elements
     console.log('Stripping iframes...');
     const strippedIframes = await stripIframes(page);
 
     const title = await page.title();
 
-    // 6. Execute DOM injection to gather computed styles for up to 1000 visible elements
+    // 7. Execute DOM injection to gather computed styles for up to 1000 visible elements
     console.log('Running style extraction script...');
-    const elements = await page.evaluate((props) => {
+    const rawElements = await page.evaluate((props) => {
       const allElements = Array.from(document.querySelectorAll('*'));
       
       // Filter for elements that are likely visible and render content
@@ -143,6 +172,28 @@ export async function extractComputedStyles(
         };
       });
     }, PROPERTIES_TO_COLLECT);
+
+    // 8. Filter out default user-agent styles dynamically
+    console.log('Filtering out baseline browser styles...');
+    const elements: IExtractedElement[] = rawElements.map((el) => {
+      // Find the baseline config for this tag, default to 'div' if tag isn't explicitly pre-mapped
+      const baseline = baselineStyles[el.tagName] || baselineStyles['div'] || {};
+      
+      const filteredStyles: Record<string, string> = {};
+      Object.entries(el.styles).forEach(([prop, val]) => {
+        // Only keep style property if it differs from the browser's default baseline value
+        if (val !== baseline[prop]) {
+          filteredStyles[prop] = val;
+        }
+      });
+
+      return {
+        tagName: el.tagName,
+        className: el.className,
+        id: el.id,
+        styles: filteredStyles,
+      };
+    });
 
     console.log(`Successfully completed extraction for "${title}". Extracted ${elements.length} elements.`);
 
