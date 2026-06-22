@@ -1,5 +1,12 @@
 import { chromium, Page } from 'playwright';
 import { IExtractedElement } from '../types';
+import path from 'path';
+
+// Configure Playwright browser path to be packaged within the backend build folder on Render
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = path.join(__dirname, '..', '..', '.playwright-browsers');
+  console.log(`Setting Playwright browsers path fallback to: ${process.env.PLAYWRIGHT_BROWSERS_PATH}`);
+}
 
 const PROPERTIES_TO_COLLECT = [
   'color',
