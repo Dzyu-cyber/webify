@@ -24,7 +24,7 @@ Designed for developers, designers, and AI agents, it bypasses the noise of raw 
 flowchart TD
     A["User Input: Website URL"] --> B["Playwright Headless Browser"]
     B --> C["DOM Stabilization & Iframe Removal"]
-    B --> D["Capture 5 Viewport Screenshots (JPEG base64)"]
+    B --> D["Capture 5 Viewport Screenshots - JPEG base64"]
     B --> E["Extract Computed CSS Styles (1000 Elements)"]
     
     E --> F["Filter browser baseline defaults"]
@@ -34,7 +34,7 @@ flowchart TD
     G --> I["Calculate Spacing GCD (Base Grid)"]
     G --> J["Map Typography Families & Scales"]
     
-    H & I & J & D --> K["Gemini 2.5 Flash API (Multimodal)"]
+    H & I & J & D --> K["Gemini 2.5 Flash API - Multimodal"]
     K --> L["Generate LLM-Ready design.md"]
     
     L --> M["Vite React UI Render"]

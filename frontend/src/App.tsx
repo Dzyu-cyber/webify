@@ -14,6 +14,13 @@ function App() {
 
   const { status, error: pollError, startPolling, stopPolling } = useJobPolling(API_BASE_URL);
 
+  const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+  const isBaseUrlLocal = API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1');
+  const showConfigWarning = isProduction && isBaseUrlLocal;
+
+  const error = submitError || pollError;
+  const isJobLoading = isSubmitting || (!!targetUrl && !status && !error);
+
   const handleUrlSubmit = async (url: string) => {
     setIsSubmitting(true);
     setSubmitError(null);
@@ -49,8 +56,6 @@ function App() {
     setIsSubmitting(false);
     setSubmitError(null);
   };
-
-  const error = submitError || pollError;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none antialiased">
@@ -88,6 +93,19 @@ function App() {
               </p>
             </div>
 
+            {showConfigWarning && (
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-4 rounded-2xl flex items-start gap-3 max-w-2xl mx-auto text-left">
+                <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-500" />
+                <div>
+                  <h4 className="font-semibold text-sm">Configuration Warning</h4>
+                  <p className="text-xs text-amber-400/90 mt-0.5">
+                    Webify is running in production, but is configured to connect to a local backend API (<code className="font-mono bg-slate-950 px-1 py-0.5 rounded text-amber-300">{API_BASE_URL}</code>). 
+                    Please configure the <code className="font-mono bg-slate-950 px-1 py-0.5 rounded text-amber-300">VITE_API_BASE_URL</code> environment variable in your Vercel project settings to point to your deployed Render API (e.g., <code className="font-mono bg-slate-950 px-1 py-0.5 rounded text-indigo-300">https://webify-api-g3ew.onrender.com</code>) and redeploy.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="bg-slate-900/40 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl max-w-2xl mx-auto">
               <UrlInputForm onSubmit={handleUrlSubmit} isLoading={isSubmitting} />
             </div>
@@ -120,8 +138,24 @@ function App() {
               </div>
             )}
 
+            {/* Initial Loading / Connection State */}
+            {isJobLoading && (
+              <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center gap-3 text-sm text-slate-400">
+                <svg className="animate-spin h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span className="font-medium text-slate-350">
+                  Connecting to backend server and initializing job...
+                  <span className="block text-[10px] text-slate-500 mt-1 font-mono">
+                    Note: Render web services sleep after inactivity. This may take up to 50 seconds to wake the server.
+                  </span>
+                </span>
+              </div>
+            )}
+
             {/* Loading / Progress State */}
-            {status && (status.state !== 'completed' && status.state !== 'failed') && (
+            {status && !isJobLoading && (status.state !== 'completed' && status.state !== 'failed') && (
               <JobStatusTracker status={status} />
             )}
 
