@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import jobRouter from './routes/jobRoutes';
+import './worker'; // Boots the BullMQ worker in the same process
 
 dotenv.config();
 
