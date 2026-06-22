@@ -25,9 +25,10 @@ Webify is split into a separated Frontend (React SPA) and Backend (Express API +
   - ✅ Feature 1: Headless Extraction Engine (Playwright DOM style extraction, stabilization, iframe stripping, and baseline filtering)
   - ✅ Feature 2: Style Distiller & Tokenizer (CIE76 color clustering, base spacing unit GCD, and typography scale extraction)
   - ✅ Feature 3: LLM Formatter Pipeline (Claude API integration, custom system prompt design, DOM payload simplification, and backoff retry logic)
+  - ✅ Feature 4: Async API & Job Queue (Express endpoints, BullMQ scheduler, parsed Redis connection options, and worker serialization)
 - **In Progress:**
-  - 🔄 Feature 4: Async API & Job Queue
-- **Next Up:** Feature 4, Task 4.1 — Express API server and middleware initialization.
+  - 🔄 Feature 5: Web Interface
+- **Next Up:** Feature 5, Task 5.1 — Client React SPA initialization and router setup.
 
 ## Environment Variables Needed
 *(Note: Frontend vars use `VITE_` prefix, Backend vars do not)*
