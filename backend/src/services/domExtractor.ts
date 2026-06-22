@@ -1,4 +1,29 @@
 import { chromium, Page } from 'playwright';
+import { IExtractedElement } from '../types';
+
+const PROPERTIES_TO_COLLECT = [
+  'color',
+  'background-color',
+  'font-family',
+  'font-size',
+  'font-weight',
+  'line-height',
+  'letter-spacing',
+  'text-transform',
+  'margin-top',
+  'margin-right',
+  'margin-bottom',
+  'margin-left',
+  'padding-top',
+  'padding-right',
+  'padding-bottom',
+  'padding-left',
+  'display',
+  'position',
+  'border-top-color',
+  'border-radius',
+  'box-shadow'
+];
 
 /**
  * Helper function to wait for DOM stabilization.
@@ -40,11 +65,16 @@ async function stripIframes(page: Page): Promise<number> {
 }
 
 /**
- * Visits a URL, applies advanced wait conditions, strips iframes, and returns page metadata.
+ * Visits a URL, waits for it to stabilize, strips iframes, and extracts computed styles for up to 1000 elements.
  */
-export async function extractPageMetadata(
+export async function extractComputedStyles(
   url: string
-): Promise<{ title: string; status: number; elementCount: number; strippedIframes: number }> {
+): Promise<{
+  title: string;
+  status: number;
+  elements: IExtractedElement[];
+  strippedIframes: number;
+}> {
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext();
@@ -72,18 +102,58 @@ export async function extractPageMetadata(
     console.log('Waiting for DOM stabilization...');
     await waitForDomStabilization(page);
 
-    // 5. Strip all iframe elements to avoid shadow/polluted DOM injection
+    // 5. Strip all iframe elements
     console.log('Stripping iframes...');
     const strippedIframes = await stripIframes(page);
 
     const title = await page.title();
-    const elementCount = await page.evaluate(() => document.getElementsByTagName('*').length);
 
-    console.log(`Successfully loaded page: "${title}" | Elements remaining: ${elementCount} | Status: ${status}`);
+    // 6. Execute DOM injection to gather computed styles for up to 1000 visible elements
+    console.log('Running style extraction script...');
+    const elements = await page.evaluate((props) => {
+      const allElements = Array.from(document.querySelectorAll('*'));
+      
+      // Filter for elements that are likely visible and render content
+      const visibleElements = allElements.filter((el) => {
+        const rect = el.getBoundingClientRect();
+        // Check if element has area and display style isn't 'none'
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        
+        const style = window.getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        
+        return true;
+      });
 
-    return { title, status, elementCount, strippedIframes };
+      // Sample first 1000 visible elements
+      const sampled = visibleElements.slice(0, 1000);
+
+      return sampled.map((el) => {
+        const style = window.getComputedStyle(el);
+        const styleMap: Record<string, string> = {};
+        props.forEach((prop) => {
+          styleMap[prop] = style.getPropertyValue(prop);
+        });
+
+        return {
+          tagName: el.tagName.toLowerCase(),
+          className: el.className,
+          id: el.id,
+          styles: styleMap,
+        };
+      });
+    }, PROPERTIES_TO_COLLECT);
+
+    console.log(`Successfully completed extraction for "${title}". Extracted ${elements.length} elements.`);
+
+    return {
+      title,
+      status,
+      elements,
+      strippedIframes,
+    };
   } catch (error) {
-    console.error(`Failed during page extraction for ${url}:`, error);
+    console.error(`Failed during computed style extraction for ${url}:`, error);
     throw error;
   } finally {
     await browser.close();
