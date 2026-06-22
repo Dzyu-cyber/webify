@@ -27,9 +27,24 @@ async function waitForDomStabilization(page: Page, timeoutMs = 10000, checkInter
 }
 
 /**
- * Visits a URL, applies advanced wait conditions, and returns page metadata.
+ * Helper function to detect and completely strip iframe elements from the DOM.
  */
-export async function extractPageMetadata(url: string): Promise<{ title: string; status: number; elementCount: number }> {
+async function stripIframes(page: Page): Promise<number> {
+  const removedCount = await page.evaluate(() => {
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach((iframe) => iframe.remove());
+    return iframes.length;
+  });
+  console.log(`Detected and stripped ${removedCount} iframe(s) from the page DOM.`);
+  return removedCount;
+}
+
+/**
+ * Visits a URL, applies advanced wait conditions, strips iframes, and returns page metadata.
+ */
+export async function extractPageMetadata(
+  url: string
+): Promise<{ title: string; status: number; elementCount: number; strippedIframes: number }> {
   const browser = await chromium.launch({ headless: true });
   try {
     const context = await browser.newContext();
@@ -57,12 +72,16 @@ export async function extractPageMetadata(url: string): Promise<{ title: string;
     console.log('Waiting for DOM stabilization...');
     await waitForDomStabilization(page);
 
+    // 5. Strip all iframe elements to avoid shadow/polluted DOM injection
+    console.log('Stripping iframes...');
+    const strippedIframes = await stripIframes(page);
+
     const title = await page.title();
     const elementCount = await page.evaluate(() => document.getElementsByTagName('*').length);
 
-    console.log(`Successfully loaded page: "${title}" | Elements: ${elementCount} | Status: ${status}`);
+    console.log(`Successfully loaded page: "${title}" | Elements remaining: ${elementCount} | Status: ${status}`);
 
-    return { title, status, elementCount };
+    return { title, status, elementCount, strippedIframes };
   } catch (error) {
     console.error(`Failed during page extraction for ${url}:`, error);
     throw error;
