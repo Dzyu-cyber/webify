@@ -98,3 +98,69 @@ export function extractBaseSpacingUnit(elements: IExtractedElement[]): number {
 
   return detectedGcd;
 }
+
+export interface IDistilledTypography {
+  fontFamilies: { name: string; count: number }[];
+  fontSizes: string[];
+}
+
+// Standard design system font scale values in pixels
+const STANDARD_FONT_SIZES = new Set([
+  8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 24, 26, 28, 30, 32, 36, 40, 48, 56, 64, 72, 80, 96
+]);
+
+/**
+ * Extracts and distills font families and font sizes into a standardized type scale.
+ */
+export function distillTypography(elements: IExtractedElement[]): IDistilledTypography {
+  const families: Record<string, number> = {};
+  const sizes: Record<number, number> = {};
+
+  elements.forEach((el) => {
+    const family = el.styles['font-family'];
+    const size = el.styles['font-size'];
+
+    if (family) {
+      const cleanFamily = family
+        .split(',')
+        .map((f) => f.trim().replace(/['"]/g, ''))
+        .join(', ');
+      families[cleanFamily] = (families[cleanFamily] || 0) + 1;
+    }
+
+    if (size) {
+      const parsedSize = parseSpacingValue(size);
+      if (parsedSize !== null && parsedSize > 0) {
+        sizes[parsedSize] = (sizes[parsedSize] || 0) + 1;
+      }
+    }
+  });
+
+  // Sort font families by usage count descending (limit to top 5)
+  const sortedFamilies = Object.entries(families)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // Group unique sizes and filter out single-occurrence outliers that don't match the standard font scale
+  const uniqueSizes = Object.entries(sizes)
+    .map(([size, count]) => ({ size: parseInt(size), count }));
+
+  const filteredSizes = uniqueSizes.filter((item) => {
+    // Keep size if it appears multiple times
+    if (item.count >= 2) return true;
+    // Keep size if it's a standard design system font size (keeps headers/captions used once)
+    return STANDARD_FONT_SIZES.has(item.size);
+  });
+
+  // Sort font-sizes in ascending order to represent a natural type scale
+  const sortedSizesStr = filteredSizes
+    .map(item => item.size)
+    .sort((a, b) => a - b)
+    .map(size => `${size}px`);
+
+  return {
+    fontFamilies: sortedFamilies,
+    fontSizes: sortedSizesStr,
+  };
+}
